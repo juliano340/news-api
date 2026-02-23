@@ -1,0 +1,23 @@
+{
+  "name": "news-api",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js",
+    "collect": "node -e \"require('./src/lib/db').init(); require('./src/services/collector').runCollection().then((r)=>{console.log(JSON.stringify(r,null,2)); process.exit(0);}).catch((e)=>{console.error(e); process.exit(1);});\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "Backend API e coletor de noticias com SQLite",
+  "dependencies": {
+    "axios": "^1.13.5",
+    "better-sqlite3": "^12.6.2",
+    "dotenv": "^17.3.1",
+    "fastify": "^5.7.4",
+    "node-cron": "^4.2.1",
+    "rss-parser": "^3.13.0",
+    "slugify": "^1.6.6"
+  }
+}
