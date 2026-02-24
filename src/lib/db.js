@@ -47,6 +47,8 @@ init();
 
 const nowIso = () => new Date().toISOString();
 
+const selectSlugByOriginalUrlStmt = db.prepare('SELECT slug FROM posts WHERE original_url = ?');
+
 const upsertPostStmt = db.prepare(`
   INSERT INTO posts (
     slug, title, source, original_url, image_url, summary_text, content,
@@ -79,8 +81,11 @@ const mapPostRow = (row) => ({
 
 const insertOrUpdatePost = (post) => {
   const now = nowIso();
+  const existing = selectSlugByOriginalUrlStmt.get(post.original_url);
+  const stableSlug = existing?.slug || post.slug;
+
   upsertPostStmt.run({
-    slug: post.slug,
+    slug: stableSlug,
     title: post.title,
     source: post.source,
     original_url: post.original_url,
