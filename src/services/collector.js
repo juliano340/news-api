@@ -54,6 +54,104 @@ const extractTags = (title = '', content = '', source = '') => {
   return Array.from(tags).slice(0, 6);
 };
 
+
+const toValidUrl = (value) => {
+  const url = String(value || '').replace(/&amp;/g, '&').trim();
+  return /^https?:\/\//i.test(url) ? url : '';
+};
+
+const extractFirstImageFromHtml = (html = '') => {
+  const match = String(html).match(/<img[^>]+src=["']([^"']+)["']/i);
+  if (match?.[1]) return toValidUrl(match[1]);
+
+  const plainUrl = String(html).match(/https?:\/\/[^\s"')>]+\.(?:png|jpe?g|webp|avif)(?:\?[^\s"')>]*)?/i);
+  if (plainUrl?.[0]) return toValidUrl(plainUrl[0]);
+
+  return '';
+};
+
+
+
+const fetchOgImageFromUrl = async (url) => {
+  const target = toValidUrl(url);
+  if (!target) return '';
+
+  try {
+    const response = await axios.get(target, {
+      timeout: Math.min(config.requestTimeoutMs, 12000),
+      headers: {
+        'User-Agent': 'news-api-worker/1.0',
+        Accept: 'text/html,application/xhtml+xml'
+      }
+    });
+
+    const html = String(response.data || '');
+    const patterns = [
+      /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["'][^>]*>/i,
+      /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["'][^>]*>/i,
+      /<meta[^>]+name=["']twitter:image(?::src)?["'][^>]+content=["']([^"']+)["'][^>]*>/i,
+      /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image(?::src)?["'][^>]*>/i
+    ];
+
+    for (const pattern of patterns) {
+      const match = html.match(pattern);
+      if (match?.[1]) {
+        const found = toValidUrl(match[1]);
+        if (found) return found;
+      }
+    }
+
+    return extractFirstImageFromHtml(html);
+  } catch {
+    return '';
+  }
+};
+
+const extractImageUrl = (item, rawText = '') => {
+  const candidates = [];
+
+  candidates.push(item?.enclosure?.url);
+  candidates.push(item?.enclosure?.link);
+  candidates.push(item?.image?.url);
+  candidates.push(item?.thumbnail);
+
+  const itunesImage = item?.['itunes:image'];
+  if (itunesImage) {
+    candidates.push(itunesImage.href);
+    candidates.push(itunesImage.url);
+    candidates.push(itunesImage?.$?.href);
+  }
+
+  const mediaThumb = item?.['media:thumbnail'];
+  if (Array.isArray(mediaThumb)) {
+    mediaThumb.forEach((entry) => {
+      candidates.push(entry?.url);
+      candidates.push(entry?.$?.url);
+    });
+  } else if (mediaThumb) {
+    candidates.push(mediaThumb.url);
+    candidates.push(mediaThumb?.$?.url);
+  }
+
+  const mediaContent = item?.['media:content'];
+  if (Array.isArray(mediaContent)) {
+    mediaContent.forEach((entry) => {
+      candidates.push(entry?.url);
+      candidates.push(entry?.$?.url);
+    });
+  } else if (mediaContent) {
+    candidates.push(mediaContent.url);
+    candidates.push(mediaContent?.$?.url);
+  }
+
+  for (const candidate of candidates) {
+    const valid = toValidUrl(candidate);
+    if (valid) return valid;
+  }
+
+  return extractFirstImageFromHtml(rawText);
+};
+
 const decodeFeedBody = (buffer, encodingHeader = '') => {
   const isGzipHeader = String(encodingHeader).toLowerCase().includes('gzip');
   const isGzipMagic = buffer?.[0] === 0x1f && buffer?.[1] === 0x8b;
@@ -94,6 +192,11 @@ const normalizePost = async (item, sourceName) => {
   const slugBase = slugify(title, { lower: true, strict: true });
   const slug = slugBase || slugify(originalUrl, { lower: true, strict: true });
 
+  let imageUrl = extractImageUrl(item, rawText);
+  if (!imageUrl) {
+    imageUrl = await fetchOgImageFromUrl(originalUrl);
+  }
+
   const aiResult = await generateEditorialContent({
     title,
     source: sourceName,
@@ -106,7 +209,7 @@ const normalizePost = async (item, sourceName) => {
     title,
     source: sourceName,
     original_url: originalUrl,
-    image_url: '',
+    image_url: imageUrl,
     summary_text: rawText.slice(0, 260),
     content: aiResult.content,
     tags: extractTags(title, rawText, sourceName),
