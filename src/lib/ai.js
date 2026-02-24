@@ -3,9 +3,28 @@ const config = require('../config');
 
 const enabled = config.useAI && Boolean(config.openRouterKey);
 
+function sanitizeRawText(rawText) {
+  return String(rawText || '')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/\r/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/[ \t]+/g, ' ')
+    .trim();
+}
+
 const createMarkdown = ({ title, source, sourceUrl, rawText }) => {
-  const base = String(rawText || '').replace(/\s+/g, ' ').trim();
-  const excerpt = base.slice(0, 900);
+  const base = sanitizeRawText(rawText);
+  const excerpt = base.slice(0, 1200);
 
   return [
     `# ${title}`,
@@ -41,9 +60,11 @@ const createMarkdown = ({ title, source, sourceUrl, rawText }) => {
 };
 
 const generateEditorialContent = async ({ title, source, sourceUrl, rawText }) => {
+  const cleanRawText = sanitizeRawText(rawText);
+
   if (!enabled) {
     return {
-      content: createMarkdown({ title, source, sourceUrl, rawText }),
+      content: createMarkdown({ title, source, sourceUrl, rawText: cleanRawText }),
       mode: 'template'
     };
   }
@@ -63,7 +84,7 @@ const generateEditorialContent = async ({ title, source, sourceUrl, rawText }) =
     `Titulo: ${title}`,
     `Fonte: ${source}`,
     `URL: ${sourceUrl}`,
-    `Conteudo bruto: ${String(rawText || '').slice(0, 8000)}`
+    `Conteudo bruto: ${cleanRawText.slice(0, 8000)}`
   ].join('\n');
 
   try {
@@ -94,7 +115,7 @@ const generateEditorialContent = async ({ title, source, sourceUrl, rawText }) =
     };
   } catch (_err) {
     return {
-      content: createMarkdown({ title, source, sourceUrl, rawText }),
+      content: createMarkdown({ title, source, sourceUrl, rawText: cleanRawText }),
       mode: 'fallback_template'
     };
   }
