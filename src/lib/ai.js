@@ -104,7 +104,7 @@ const generateEditorialContent = async ({ title, source, sourceUrl, rawText }) =
           { role: 'system', content: 'Voce e um editor de noticias em portugues do Brasil.' },
           { role: 'user', content: prompt }
         ],
-        max_tokens: 1400
+        max_tokens: config.openRouterMaxTokens
       },
       {
         timeout: config.requestTimeoutMs,
