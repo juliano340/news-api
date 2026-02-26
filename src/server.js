@@ -1,4 +1,5 @@
 const Fastify = require('fastify');
+const fastifyCors = require('@fastify/cors');
 const config = require('./config');
 const db = require('./lib/db');
 const postsRoutes = require('./routes/posts');
@@ -8,6 +9,12 @@ const { runOnce } = require('./scheduler');
 
 const buildServer = () => {
   const app = Fastify({ logger: true });
+
+  app.register(fastifyCors, {
+    origin: config.corsOrigin,
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+  });
 
   db.init();
 

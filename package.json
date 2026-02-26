@@ -14,6 +14,7 @@
   "license": "ISC",
   "description": "Backend API e coletor de noticias com SQLite",
   "dependencies": {
+    "@fastify/cors": "^11.2.0",
     "axios": "^1.13.5",
     "better-sqlite3": "^12.6.2",
     "dotenv": "^17.3.1",

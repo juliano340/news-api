@@ -18,10 +18,13 @@ module.exports = {
   schedulerCron: process.env.SCHEDULER_CRON || '0 * * * *',
   maxPostsPerSource: toNumber(process.env.MAX_POSTS_PER_SOURCE, 10),
   requestTimeoutMs: toNumber(process.env.REQUEST_TIMEOUT_MS, 30000),
+  corsOrigin: process.env.CORS_ORIGIN || '*',
   useAI: toBool(process.env.USE_AI, false),
   openRouterKey: process.env.OPENROUTER_KEY || '',
   openRouterModel: process.env.OPENROUTER_MODEL || 'openai/gpt-4o-mini',
   openRouterMaxTokens: toNumber(process.env.OPENROUTER_MAX_TOKENS, 700),
+  buildHookUrl: process.env.BUILD_HOOK_URL || '',
+  buildHookToken: process.env.BUILD_HOOK_TOKEN || '',
   editorialMinScore: toNumber(process.env.EDITORIAL_MIN_SCORE, 70),
   sources: {
     G1: { enabled: true, url: 'https://g1.globo.com/rss/g1/tecnologia/' },
