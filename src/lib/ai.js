@@ -30,50 +30,14 @@ function sanitizeRawText(rawText) {
     .trim();
 }
 
-const createMarkdown = ({ title, source, sourceUrl, rawText }) => {
-  const base = sanitizeRawText(rawText);
-  const excerpt = base.slice(0, 1200);
-
-  return [
-    `# ${title}`,
-    '',
-    '## Resumo em 3 bullets',
-    '- Fato principal da pauta organizado de forma direta.',
-    '- Contexto essencial para entender o impacto no curto prazo.',
-    '- Pontos praticos para acompanhar os proximos passos.',
-    '',
-    '## Contexto',
-    excerpt || 'Sem contexto detalhado no momento.',
-    '',
-    '## Insights e implicacoes',
-    'O principal insight e observar como esse movimento afeta decisoes de produto, mercado e comportamento do publico.',
-    '',
-    '## O que fazer agora',
-    '- Validar os fatos em fontes primarias.',
-    '- Priorizar impacto de curto prazo para decisao rapida.',
-    '- Acompanhar atualizacoes oficiais nos proximos dias.',
-    '',
-    '## O que vale acompanhar',
-    '- Novos desdobramentos oficiais do tema.',
-    '- Reacao de mercado e dos principais atores.',
-    '- Mudancas praticas que alterem a leitura inicial.',
-    '',
-    '## Fonte e transparencia',
-    `- Fonte primaria: ${sourceUrl || ''}`,
-    `- Conteudo coletado automaticamente da fonte ${source || 'desconhecida'}.`,
-    '',
-    '## Por que isso importa',
-    'A pauta ajuda a transformar manchete em decisao pratica com menos ruido e mais contexto.'
-  ].join('\n');
-};
-
 const generateEditorialContent = async ({ title, source, sourceUrl, rawText }) => {
   const cleanRawText = sanitizeRawText(rawText);
 
   if (!enabled) {
     return {
-      content: createMarkdown({ title, source, sourceUrl, rawText: cleanRawText }),
-      mode: 'template'
+      content: '',
+      mode: 'pending_ai',
+      error: 'ai_not_enabled'
     };
   }
 
@@ -121,10 +85,15 @@ const generateEditorialContent = async ({ title, source, sourceUrl, rawText }) =
       content,
       mode: 'ai'
     };
-  } catch (_err) {
+  } catch (err) {
+    const status = err?.response?.status;
+    const responseMessage = err?.response?.data?.error?.message;
+    const errorMessage = responseMessage || err?.message || 'ai_generation_failed';
+
     return {
-      content: createMarkdown({ title, source, sourceUrl, rawText: cleanRawText }),
-      mode: 'fallback_template'
+      content: '',
+      mode: 'pending_ai',
+      error: status ? `http_${status}:${errorMessage}` : errorMessage
     };
   }
 };

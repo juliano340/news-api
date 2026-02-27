@@ -19,6 +19,8 @@ module.exports = {
   maxPostsPerSource: toNumber(process.env.MAX_POSTS_PER_SOURCE, 10),
   requestTimeoutMs: toNumber(process.env.REQUEST_TIMEOUT_MS, 30000),
   corsOrigin: process.env.CORS_ORIGIN || '*',
+  pendingRetryDelayMinutes: toNumber(process.env.PENDING_RETRY_DELAY_MINUTES, 30),
+  pendingRetryBatch: toNumber(process.env.PENDING_RETRY_BATCH, 30),
   useAI: toBool(process.env.USE_AI, false),
   openRouterKey: process.env.OPENROUTER_KEY || '',
   openRouterModel: process.env.OPENROUTER_MODEL || 'openai/gpt-4o-mini',
